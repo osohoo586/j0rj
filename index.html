@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart Animation - Full Experience</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mongolian:wght@400;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            overflow: hidden;
+            font-family: 'Noto Sans Mongolian', 'Segoe UI', sans-serif;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .message-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .message {
+            font-size: 3rem;
+            color: #FF69B4;
+            font-weight: bold;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .message.show {
+            opacity: 1;
+        }
+
+        /* Small hearts decoration */
+        .small-heart {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            opacity: 0;
+            animation: floatHeart 3s ease-in-out;
+        }
+
+        .small-heart::before,
+        .small-heart::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            width: 20px;
+            height: 32px;
+            border-radius: 20px 20px 0 0;
+            background: #FFB6C1;
+        }
+
+        .small-heart::before {
+            left: 20px;
+            transform: rotate(-45deg);
+            transform-origin: 0 100%;
+        }
+
+        .small-heart::after {
+            left: 0;
+            transform: rotate(45deg);
+            transform-origin: 100% 100%;
+        }
+
+        @keyframes floatHeart {
+            0% {
+                opacity: 0;
+                transform: scale(0) translateY(0);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1) translateY(-20px);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.5) translateY(-40px);
+            }
+        }
+
+        /* Sparkles */
+        .sparkle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            opacity: 0;
+        }
+
+        .sparkle::before,
+        .sparkle::after {
+            content: "";
+            position: absolute;
+            background: #FFFF00;
+        }
+
+        .sparkle::before {
+            width: 2px;
+            height: 20px;
+            left: 9px;
+            top: 0;
+        }
+
+        .sparkle::after {
+            width: 20px;
+            height: 2px;
+            left: 0;
+            top: 9px;
+        }
+
+        @keyframes sparkleAnim {
+            0%, 100% {
+                opacity: 0;
+                transform: scale(0) rotate(0deg);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1) rotate(180deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="heartCanvas"></canvas>
+
+    <div class="message-container">
+        <div class="message" id="message1"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Heart shape functions
+        function heartX(t) {
+            return 15 * Math.pow(Math.sin(t), 3);
+        }
+
+        function heartY(t) {
+            return 12 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+        }
+
+        // Draw heart from center animation
+        async function drawHeartAnimation() {
+            const scale = 18;
+            const steps = 500;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Generate all points
+            const points = [];
+            for (let i = 0; i <= steps; i++) {
+                const t = (i / steps) * 2 * Math.PI;
+                const x = heartX(t) * scale;
+                const y = -heartY(t) * scale;
+                points.push({ x, y });
+            }
+
+            // Shuffle for random effect
+            const shuffled = [...points].sort(() => Math.random() - 0.5);
+
+            // Draw lines from center to each point
+            ctx.strokeStyle = '#ff0844';
+            ctx.lineWidth = 1;
+
+            for (let point of shuffled) {
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(centerX + point.x, centerY + point.y);
+                ctx.stroke();
+                await sleep(1); // Fast animation
+            }
+
+            await sleep(1000);
+        }
+
+        // Clear canvas
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Show message with typing effect
+        async function typeMessage(element, text, delay = 100) {
+            element.textContent = '';
+            element.classList.add('show');
+
+            for (let i = 0; i < text.length; i++) {
+                element.textContent += text[i];
+                await sleep(delay);
+            }
+        }
+
+        // Fade out message
+        async function fadeOutMessage(element) {
+            for (let i = 0; i < 3; i++) {
+                element.classList.remove('show');
+                await sleep(200);
+                element.classList.add('show');
+                await sleep(200);
+            }
+            element.classList.remove('show');
+        }
+
+        // Draw small hearts around
+        function drawSmallHearts() {
+            const positions = [
+                { x: 0.15, y: 0.2 }, { x: 0.25, y: 0.15 }, { x: 0.35, y: 0.12 },
+                { x: 0.65, y: 0.12 }, { x: 0.75, y: 0.15 }, { x: 0.85, y: 0.2 },
+                { x: 0.15, y: 0.8 }, { x: 0.25, y: 0.85 }, { x: 0.35, y: 0.88 },
+                { x: 0.65, y: 0.88 }, { x: 0.75, y: 0.85 }, { x: 0.85, y: 0.8 },
+            ];
+
+            positions.forEach((pos, index) => {
+                setTimeout(() => {
+                    const heart = document.createElement('div');
+                    heart.className = 'small-heart';
+                    heart.style.left = (canvas.width * pos.x) + 'px';
+                    heart.style.top = (canvas.height * pos.y) + 'px';
+                    document.body.appendChild(heart);
+
+                    setTimeout(() => heart.remove(), 3000);
+                }, index * 100);
+            });
+        }
+
+        // Draw sparkles
+        function drawSparkles() {
+            const positions = [
+                { x: 0.1, y: 0.5 }, { x: 0.2, y: 0.3 }, { x: 0.2, y: 0.7 },
+                { x: 0.9, y: 0.5 }, { x: 0.8, y: 0.3 }, { x: 0.8, y: 0.7 },
+                { x: 0.5, y: 0.1 }, { x: 0.5, y: 0.9 }
+            ];
+
+            positions.forEach((pos, index) => {
+                setTimeout(() => {
+                    const sparkle = document.createElement('div');
+                    sparkle.className = 'sparkle';
+                    sparkle.style.left = (canvas.width * pos.x) + 'px';
+                    sparkle.style.top = (canvas.height * pos.y) + 'px';
+                    sparkle.style.animation = 'sparkleAnim 1s ease-in-out';
+                    document.body.appendChild(sparkle);
+
+                    setTimeout(() => sparkle.remove(), 1000);
+                }, index * 150);
+            });
+        }
+
+        // Romantic message animation with small hearts
+        async function showRomanticMessage() {
+            clearCanvas();
+
+            const message1Elem = document.getElementById('message1');
+
+            // First message: "Би зүгээр л 10 минутад"
+            await typeMessage(message1Elem, 'Би зүгээр л 10 минутад', 100);
+            await sleep(1500);
+            await fadeOutMessage(message1Elem);
+            message1Elem.textContent = '';
+            await sleep(500);
+
+            // Second message: "Чамд дурлачихсан 💖" with hearts and sparkles
+            drawSmallHearts();
+            await sleep(300);
+
+            message1Elem.style.color = '#FF1493';
+            await typeMessage(message1Elem, 'Чамд дурлачихсан 💖', 150);
+
+            // Pulse effect
+            for (let i = 0; i < 8; i++) {
+                if (i % 2 === 0) {
+                    message1Elem.style.fontSize = '3.5rem';
+                    message1Elem.style.color = '#FF1493';
+                } else {
+                    message1Elem.style.fontSize = '3rem';
+                    message1Elem.style.color = '#FF69B4';
+                }
+                await sleep(300);
+            }
+
+            // Sparkles
+            for (let i = 0; i < 3; i++) {
+                drawSparkles();
+                await sleep(500);
+            }
+
+            // Final display
+            message1Elem.style.fontSize = '3.5rem';
+            message1Elem.style.color = '#FF1493';
+        }
+
+        // Helper sleep function
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Main animation sequence
+        async function startAnimation() {
+            console.log('🎬 Starting animation...');
+
+            // Draw heart
+            await drawHeartAnimation();
+            console.log('✅ Heart drawn!');
+
+            // Show romantic messages
+            await showRomanticMessage();
+            console.log('💖 Messages displayed!');
+        }
+
+        // Start when page loads
+        window.addEventListener('load', () => {
+            setTimeout(startAnimation, 500);
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
